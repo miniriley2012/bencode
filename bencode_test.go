@@ -3,7 +3,7 @@ package bencode_test
 import (
 	"bytes"
 	"fmt"
-	"github.com/miniriley2012/torrent/bencode"
+	"github.com/miniriley2012/bencode"
 	"testing"
 	"time"
 )
@@ -32,6 +32,7 @@ func (t *Time) UnmarshalBencode(data []byte) (int, error) {
 type TestStruct struct {
 	People      []Person
 	Thing       []byte `bencode:"thing"`
+	OtherThing  [2]byte
 	DoubleSlice [][]int
 	Len         uint
 	Time        Time
@@ -160,6 +161,7 @@ func init() {
 	testStruct = TestStruct{
 		People:      []Person{{}, {}, {}},
 		Thing:       []byte("Some bytes"),
+		OtherThing:  [2]byte{'a', 'b'},
 		DoubleSlice: [][]int{{}, {}, {}},
 		Time:        Time{time.Now()},
 	}

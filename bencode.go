@@ -26,6 +26,10 @@ type Unmarshaler interface {
 func Marshal(v interface{}) ([]byte, error) {
 	value := reflect.ValueOf(v)
 
+	if v, ok := value.Interface().(Marshaler); ok {
+		return v.MarshalBencode()
+	}
+
 	switch value.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return marshalInt(int(value.Int())), nil
@@ -56,7 +60,7 @@ func marshalString(str string) []byte { return []byte(strconv.Itoa(len(str)) + "
 
 // marshalList returns the bencoded form of a slice or array.
 func marshalList(value reflect.Value) ([]byte, error) {
-	if value.Type().Elem().Kind() == reflect.Uint8 {
+	if value.Type().Kind() == reflect.Slice && value.Type().Elem().Kind() == reflect.Uint8 {
 		return marshalString(string(value.Bytes())), nil
 	}
 
@@ -108,10 +112,6 @@ func marshalMap(value reflect.Value) ([]byte, error) {
 
 // marshalStruct returns the bencoded form of a struct as a dictionary.
 func marshalStruct(value reflect.Value) ([]byte, error) {
-	if v, ok := value.Interface().(Marshaler); ok {
-		return v.MarshalBencode()
-	}
-
 	var buf bytes.Buffer
 
 	m := map[string]interface{}{}
@@ -282,8 +282,10 @@ func unmarshalDictionary(data []byte, d interface{}) (int, error) {
 			v.Elem().SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(value).Elem())
 		case reflect.Struct:
 			if f, ok := fieldWithNameOrTag(v.Elem(), key); ok {
-				if f.Kind() == reflect.Array || f.Kind() == reflect.Slice {
+				if f.Kind() == reflect.Slice {
 					fillSlice(f, reflect.ValueOf(value).Elem())
+				} else if f.Kind() == reflect.Array {
+					fillArray(f, reflect.ValueOf(value).Elem())
 				} else if f.Kind() == reflect.Struct {
 					fillStruct(f, *value.(*map[string]interface{}))
 				} else if f.Kind() == reflect.Ptr {
